@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ninjago Dreadnought - Final Assembly</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #87ceeb;
+      font-family: Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    canvas { display: block; }
+    #overlay, #legend {
+      position: absolute;
+      color: #d7e7f5;
+      background: rgba(9, 15, 22, 0.85);
+      border: 1px solid rgba(122, 164, 207, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+      border-radius: 6px;
+    }
+    #overlay {
+      top: 18px;
+      left: 18px;
+      padding: 16px 18px;
+      min-width: 420px;
+    }
+    #overlay h1 {
+      margin: 0 0 10px;
+      font-size: 19px;
+      letter-spacing: 0.14em;
+      color: #f7c766;
+      text-shadow: 0 0 12px rgba(247, 199, 102, 0.4);
+    }
+    #overlay p, #legend p {
+      margin: 5px 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    #legend {
+      right: 18px;
+      bottom: 18px;
+      padding: 14px 16px;
+      width: 390px;
+    }
+    .accent { color: #6fc0ff; font-weight: 600; }
+    .status { color: #5dff8b; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <h1>NINJAGO DREADNOUGHT // FINAL ASSEMBLY</h1>
+    <p><span class="accent">Mission:</span> Straight-line solar propulsion across circular test arena</p>
+    <p><span class="accent">Hull:</span> Sealed bow floor, deep ballast, straight keel, tiered frigate body</p>
+    <p><span class="accent">Theme:</span> Golden dragon figurehead + vertical stern rudder</p>
+    <p><span class="accent">Systems:</span> Pagoda electronics core + dual solar wings</p>
+    <p><span class="status">Status:</span> Final assembly locked, no floating geometry</p>
+  </div>
+
+  <div id="legend">
+    <p><span class="accent">Scale:</span> 1 scene unit ~ 10 cm real-world dimension</p>
+    <p><span class="accent">Materials:</span> Heavy planks, gold accents, solar silicon, split noodles</p>
+    <p><span class="accent">Controls:</span> Orbit (drag), pan (right-click), zoom (scroll)</p>
+    <p><span class="accent">Water:</span> Choppy vertex-shader waves at y = -3.0</p>
+    <p><span class="accent">Build:</span> Catamaran noodles flush, V-prow mitered, wings deployed</p>
+  </div>
+
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const DEBUG = true;
+    const RUN_ID = Date.now();
+    console.log("[RUN]", RUN_ID, "script loaded");
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 50, 150); // Pushes the "faded" look further away
+
+    const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(22, 18, 25);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 5;
+    controls.maxDistance = 90;
+    controls.maxPolarAngle = Math.PI - 0.01;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    const daylight = new THREE.DirectionalLight(0xffffff, 2.5);
+    daylight.position.set(10, 20, 10);
+    daylight.castShadow = true;
+    daylight.shadow.mapSize.set(2048, 2048);
+    daylight.shadow.camera.left = -32;
+    daylight.shadow.camera.right = 32;
+    daylight.shadow.camera.top = 32;
+    daylight.shadow.camera.bottom = -32;
+    daylight.shadow.camera.near = 0.5;
+    daylight.shadow.camera.far = 90;
+    daylight.shadow.bias = -0.00015;
+    scene.add(daylight);
+
+    const fill = new THREE.DirectionalLight(0x7ac0ff, 0.65);
+    fill.position.set(-18, 12, -8);
+    scene.add(fill);
+
+    const oceanSize = 200;
+    const waterY = -3.0; 
+
+    const waterFloor = new THREE.Mesh(
+      new THREE.PlaneGeometry(oceanSize, oceanSize),
+      new THREE.MeshStandardMaterial({
+        color: 0x002244, // Darker deep water color
+        transparent: true, 
+        opacity: 0.4, 
+        roughness: 0.2 
+      })
+    );
+    waterFloor.rotation.x = -Math.PI / 2;
+    waterFloor.position.y = waterY - 0.2; // Slightly below the waves
+    scene.add(waterFloor);
+
+    const waveGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 256, 256);
+    const waveMaterial = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    uniform float uTime;
+    varying float vHeight;
+
+    // Fixed for a plane that has been rotated -90 degrees on X
+    vec3 gerstner(vec2 p, float steepness, float wavelength, float speed, float angle) {
+      float k = 2.0 * 3.14159 / wavelength;
+      vec2 d = normalize(vec2(cos(angle), sin(angle)));
+      float f = k * (dot(d, p) - speed * uTime);
+      float a = steepness / k;
+
+      // We return Z as the height because in the plane's local space, 
+      // Z is the displacement away from the surface.
+      return vec3(
+        d.x * (a * cos(f)),
+        d.y * (a * cos(f)),
+        a * sin(f)
+      );
+    }
+
+    void main() {
+      vec3 p = position;
+      
+      // Layering 3 waves to break up the "circular" patterns
+      // Parameters: (pos, steepness, wavelength, speed, angle)
+      vec3 w1 = gerstner(p.xy, 0.2, 10.0, 1.5, 0.0);
+      vec3 w2 = gerstner(p.xy, 0.15, 5.0, 2.2, 1.1);
+      vec3 w3 = gerstner(p.xy, 0.1, 2.5, 3.0, -0.8);
+      
+      vec3 finalPos = p + w1 + w2 + w3;
+      vHeight = finalPos.z; 
+      
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying float vHeight;
+    void main() {
+      // Darker, more "Dreadnought" appropriate colors
+      vec3 deep = vec3(0.01, 0.05, 0.2); 
+      vec3 shallow = vec3(0.1, 0.4, 0.7);
+      vec3 foam = vec3(1.0, 1.0, 1.0);
+      
+      // The mix factor was likely too high in your version (5.0)
+      // We use a smaller range to smooth out the color transitions
+      float t = clamp(vHeight * 1.5 + 0.5, 0.0, 1.0);
+      vec3 col = mix(deep, shallow, t);
+      
+      // Only show foam on the very highest sharp peaks
+      if(vHeight > 0.3) {
+        float f = smoothstep(0.3, 0.6, vHeight);
+        col = mix(col, foam, f * 0.4);
+      }
+      
+      gl_FragColor = vec4(col, 0.85);
+    }
+  `
+});
+    const waterSurface = new THREE.Mesh(waveGeometry, waveMaterial);
+    waterSurface.rotation.x = -Math.PI / 2;
+    waterSurface.position.y = waterY;
+    scene.add(waterSurface);
+
+    const grid = new THREE.GridHelper(48, 48, 0x4d89c7, 0x28445f);
+    grid.position.y = -1.5;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.35;
+    scene.add(grid);
+
+    const vesselGroup = new THREE.Group();
+    vesselGroup.name = 'vesselGroup';
+    scene.add(vesselGroup);
+
+    const deckCenter = new THREE.Vector3(0, 0.4, 0);
+    controls.target.copy(deckCenter);
+
+    const materials = {
+      wood: new THREE.MeshStandardMaterial({ color: 0x2b1d0e, roughness: 0.92, metalness: 0.03 }),
+      woodLight: new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.9, metalness: 0.02 }),
+      redCabin: new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.88, metalness: 0.04 }),
+      redCabinLight: new THREE.MeshStandardMaterial({ color: 0xa01b1b, roughness: 0.82, metalness: 0.04 }),
+      noodle: new THREE.MeshStandardMaterial({ color: 0x11151a, roughness: 0.8, metalness: 0.03 }),
+      solarCell: new THREE.MeshStandardMaterial({ color: 0x123769, roughness: 0.42, metalness: 0.7 }),
+      ballastCore: new THREE.MeshStandardMaterial({ color: 0x4a5563, roughness: 0.58, metalness: 0.26 }),
+      metallic: new THREE.MeshStandardMaterial({ color: 0xc3ccd8, roughness: 0.18, metalness: 0.92 }),
+      rubber: new THREE.MeshStandardMaterial({ color: 0x11151a, roughness: 0.96, metalness: 0.04 }),
+      gold: new THREE.MeshStandardMaterial({ color: 0xd4a02c, roughness: 0.12, metalness: 1.0, emissive: 0x5a410c, emissiveIntensity: 0.35 }),
+      goldDark: new THREE.MeshStandardMaterial({ color: 0x8a6318, roughness: 0.4, metalness: 0.55 }),
+      keel: new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.95, metalness: 0.02 }),
+      solarSilicon: new THREE.MeshStandardMaterial({ color: 0x0c56a8, roughness: 0.35, metalness: 0.55, emissive: 0x062242, emissiveIntensity: 0.08 })
+    };
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, 512, 512);
+    const tileW = 64;
+    const tileH = 48;
+    for (let row = 0; row < 12; row++) {
+      for (let col = 0; col < 10; col++) {
+        const x = col * tileW;
+        const y = row * tileH;
+        ctx.fillStyle = '#0f0f0f';
+        ctx.beginPath();
+        ctx.ellipse(x + tileW / 2, y + tileH / 2, tileW * 0.35, tileH * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#e0e0e0';
+        ctx.beginPath();
+        ctx.ellipse(x + tileW / 2 - 8, y + tileH / 2 - 6, tileW * 0.3, tileH * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + tileW * 0.3, y + tileH * 0.15, tileW * 0.4, tileH * 0.15);
+        ctx.fillStyle = '#808080';
+        ctx.beginPath();
+        ctx.ellipse(x + tileW / 2, y + tileH / 2, tileW * 0.25, tileH * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, tileW, tileH);
+      }
+    }
+    const tileTexture = new THREE.CanvasTexture(canvas);
+    tileTexture.magFilter = THREE.LinearFilter;
+    tileTexture.minFilter = THREE.LinearFilter;
+    const blackTiled = new THREE.MeshStandardMaterial({ 
+      map: tileTexture, roughness: 0.6, metalness: 0.1, side: THREE.FrontSide
+    });
+
+    function addMesh(parent, geometry, material, position = [0, 0, 0], rotation = [0, 0, 0]) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(...position);
+      mesh.rotation.set(...rotation);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addEdges(target, color = 0xa8c8e6, opacity = 0.22) {
+      target.traverse((child) => {
+        if (!child.isMesh) return;
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(child.geometry, 24),
+          new THREE.LineBasicMaterial({ color, transparent: true, opacity })
+        );
+        child.add(edges);
+      });
+    }
+
+    function makeHalfNoodle(radius, length) {
+      const geo = new THREE.CylinderGeometry(radius, radius, length, 32, 1, false, 0, Math.PI);
+      const mesh = new THREE.Mesh(geo, materials.noodle);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.rotation.order = "YXZ";
+      return mesh;
+    }
+
+    function makeSolarWing(sideSign) {
+      const wing = new THREE.Group();
+      wing.position.set(2.5 * sideSign, 4.0, -1.5);
+      wing.rotation.z = 0.5 * -sideSign;
+      wing.rotation.x = 0.2;
+      addMesh(wing, new THREE.BoxGeometry(4, 0.15, 6), materials.solarSilicon, [0, 0, 0]);
+      addMesh(wing, new THREE.BoxGeometry(3.7, 0.05, 5.7), materials.solarCell, [0, 0.1, 0]);
+      for (let x = -1.4; x <= 1.4; x += 0.7) {
+        addMesh(wing, new THREE.BoxGeometry(0.06, 0.04, 5.5), materials.solarCell, [x, 0.13, 0]);
+      }
+      for (let z = -2.1; z <= 2.1; z += 0.7) {
+        addMesh(wing, new THREE.BoxGeometry(3.2, 0.04, 0.06), materials.solarCell, [0, 0.13, z]);
+      }
+      addMesh(wing, new THREE.BoxGeometry(0.32, 4.0, 0.32), materials.woodLight, [0, -2.0, 1.5], [0, 0, 0]);
+      addMesh(wing, new THREE.BoxGeometry(0.32, 4.0, 0.32), materials.woodLight, [0, -2.0, -1.5], [0, 0, 0]);
+      return wing;
+    }
+
+    const hullUnit = new THREE.Group();
+    vesselGroup.add(hullUnit);
+    const hullL = 10;
+    const hullW = 6;
+    addMesh(hullUnit, new THREE.BoxGeometry(hullW, 0.3, hullL), materials.wood, [0, 0.3, 0]);
+    addMesh(hullUnit, new THREE.BoxGeometry(hullW - 0.4, 0.18, hullL - 0.4), materials.woodLight, [0, 0.44, 0]);
+    addMesh(hullUnit, new THREE.BoxGeometry(hullW - 0.9, 0.12, hullL - 0.9), materials.wood, [0, 0.56, 0]);
+    const hullWallH = 1.8;
+    addMesh(hullUnit, new THREE.BoxGeometry(0.2, hullWallH, hullL), materials.redCabin, [-2.9, 1.2, 0]);
+    addMesh(hullUnit, new THREE.BoxGeometry(0.2, hullWallH, hullL), materials.redCabin, [2.9, 1.2, 0]);
+    addMesh(hullUnit, new THREE.BoxGeometry(6, hullWallH, 0.2), materials.redCabin, [0, 1.2, -4.9]);
+
+    const portNoodle = makeHalfNoodle(0.6, hullL);
+    portNoodle.rotation.set(0, Math.PI / 2, -Math.PI / 2);
+    portNoodle.position.set(-2.4, 0.3, 0);
+    hullUnit.add(portNoodle);
+    const starNoodle = makeHalfNoodle(0.6, hullL);
+    starNoodle.rotation.set(0, Math.PI / 2, -Math.PI / 2);
+    starNoodle.position.set(2.4, 0.3, 0);
+    hullUnit.add(starNoodle);
+
+    const bowSeal = new THREE.Group();
+    bowSeal.position.set(0, 0.44, 5); 
+    hullUnit.add(bowSeal);
+    const sealShape = new THREE.Shape();
+    sealShape.moveTo(-2.9, 0);
+    sealShape.lineTo(2.9, 0);
+    sealShape.lineTo(0, 4.5); 
+    sealShape.lineTo(-2.9, 0);
+    const sealGeo = new THREE.ExtrudeGeometry(sealShape, { depth: 0.18, bevelEnabled: false });
+    addMesh(bowSeal, sealGeo, materials.woodLight, [0, -0.09, 0], [Math.PI / 2, 0, 0]);
+    const sealBaseGeo = new THREE.ExtrudeGeometry(sealShape, { depth: 0.3, bevelEnabled: false });
+    addMesh(bowSeal, sealBaseGeo, materials.wood, [0, -0.14, 0], [Math.PI / 2, 0, 0]);
+
+    const prowWalls = new THREE.Group();
+    prowWalls.position.set(0, 1.2, 5);
+    hullUnit.add(prowWalls);
+    const prowWallL = 5.35; 
+    const prowAngle = 0.572; 
+    const leftProwGeo = new THREE.BoxGeometry(0.2, hullWallH, prowWallL);
+    leftProwGeo.translate(0, 0, prowWallL / 2);
+    addMesh(prowWalls, leftProwGeo, materials.redCabin, [-2.9, 0, 0], [0, prowAngle, 0]);
+    const rightProwGeo = new THREE.BoxGeometry(0.2, hullWallH, prowWallL);
+    rightProwGeo.translate(0, 0, prowWallL / 2);
+    addMesh(prowWalls, rightProwGeo, materials.redCabin, [2.9, 0, 0], [0, -prowAngle, 0]);
+
+    const keel = new THREE.Group();
+    vesselGroup.add(keel);
+    const kShape = new THREE.Shape();
+    kShape.moveTo(-3, 0);
+    kShape.lineTo(3, 0);
+    kShape.lineTo(2.0, -2.5);
+    kShape.lineTo(-0.8, -2.5);
+    kShape.lineTo(-3, 0);
+    const keelGeo = new THREE.ExtrudeGeometry(kShape, { depth: 0.15, bevelEnabled: false });
+    addMesh(keel, keelGeo, materials.keel, [-0.1, 0.3, 1.0], [0, Math.PI / 2, 0]);
+
+    const pagodaModule = new THREE.Group();
+    pagodaModule.position.set(0, 1.4, -3.5);
+    vesselGroup.add(pagodaModule);
+    addMesh(pagodaModule, new THREE.BoxGeometry(5.5, 1.5, 3.5), materials.redCabin, [0, 0, 0]);
+    const roofTiles = new THREE.Group();
+    roofTiles.position.set(0, 0.75, 0);
+    pagodaModule.add(roofTiles);
+    const tileRadius = 0.10;
+    const tileLength = 0.3;
+    const peakHeight = 2.2;
+    const baseHalfWidth = 2.35;
+    const baseHalfDepth = 1.90;
+    for (let x = -baseHalfWidth; x <= baseHalfWidth; x += 0.15) {
+      for (let z = -baseHalfDepth; z <= baseHalfDepth; z += 0.15) {
+        const distX = Math.abs(x);
+        const distZ = Math.abs(z);
+        const maxDist = Math.max(distX / baseHalfWidth, distZ / baseHalfDepth);
+        if (maxDist > 1.0) continue;
+        const y = peakHeight * (1 - maxDist);
+        const slopeX = distX > 0 ? Math.atan2(peakHeight, baseHalfWidth) : 0;
+        const slopeZ = distZ > 0 ? Math.atan2(peakHeight, baseHalfDepth) : 0;
+        const tiltX = Math.sign(z || 1) * slopeZ * (1 - maxDist * 0.3);
+        const tiltZ = Math.sign(x || 1) * slopeX * (1 - maxDist * 0.3);
+        const tileGeo = new THREE.CylinderGeometry(tileRadius, tileRadius, tileLength, 8, 1);
+        const tileMesh = new THREE.Mesh(tileGeo, materials.wood);
+        tileMesh.rotation.order = 'YXZ';
+        tileMesh.rotation.z = Math.PI / 2;
+        tileMesh.rotation.x = tiltX;
+        tileMesh.rotation.y = tiltZ;
+        tileMesh.position.set(x, y, z);
+        roofTiles.add(tileMesh);
+      }
+    }
+    addMesh(pagodaModule, new THREE.BoxGeometry(1.8, 0.28, 2.4), materials.wood, [0, -0.15, 0]);
+    addMesh(pagodaModule, new THREE.BoxGeometry(1.1, 0.18, 1.6), materials.wood, [0, -0.35, 0.1]);
+
+    const solarWingsSystem = new THREE.Group();
+    vesselGroup.add(solarWingsSystem);
+    const wingPort = makeSolarWing(-1);
+    const wingStarboard = makeSolarWing(1);
+    solarWingsSystem.add(wingPort, wingStarboard);
+
+    // Consolidated Stern Assembly - No floating parts
+    const sternRoot = new THREE.Group();
+    sternRoot.position.set(0, 0.5, -4.5); 
+    vesselGroup.add(sternRoot);
+
+    const sternMount = addMesh(sternRoot, new THREE.BoxGeometry(1.2, 1.2, 0.4), materials.wood, [0, 0.4, -0.1]);
+
+    const sternFin = new THREE.Group();
+    sternFin.position.set(0, -0.2, -0.2); 
+    sternRoot.add(sternFin);
+
+    const katanaTail = new THREE.Shape();
+    katanaTail.moveTo(0, 0);
+    katanaTail.lineTo(0, -3.0);
+    katanaTail.bezierCurveTo(1.0, -3.0, 2.0, -1.8, 2.2, 0);
+    katanaTail.bezierCurveTo(1.8, 0.5, 0.8, 0.7, 0, 0);
+    const rudderGeo = new THREE.ExtrudeGeometry(katanaTail, { depth: 0.15, bevelEnabled: false });
+    rudderGeo.scale(0.5, 0.5, 0.5);
+    addMesh(sternFin, rudderGeo, materials.metallic, [0.08, 0, 0], [0, -Math.PI/2, 0]);
+    
+    const driveShaft = new THREE.Group();
+    driveShaft.position.set(0, -0.35, 4);
+    driveShaft.rotation.x = -0.15;
+    sternRoot.add(driveShaft);
+
+    addMesh(driveShaft, new THREE.CylinderGeometry(0.07, 0.07, 2.5), materials.metallic, [0, -0.2, -1.0], [Math.PI/2, 0, 0]);
+
+    const propellerSystem = new THREE.Group();
+    propellerSystem.position.set(0, -0.2, -2.2);
+    driveShaft.add(propellerSystem);
+
+    addMesh(propellerSystem, new THREE.CylinderGeometry(0.15, 0.15, 0.35), materials.metallic, [0, 0, 0], [Math.PI/2, 0, 0]);
+
+    const bladeAngles = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+
+    function createBlade() {
+      const shape = new THREE.Shape();
+      shape.moveTo(0.00, 0.00);
+      shape.bezierCurveTo(0.18, -0.10, 0.55, -0.12, 0.92, -0.03);
+      shape.bezierCurveTo(1.18, 0.04, 1.22, 0.18, 1.08, 0.28);
+      shape.bezierCurveTo(0.72, 0.54, 0.28, 0.64, 0.00, 0.52);
+      shape.bezierCurveTo(-0.06, 0.36, -0.04, 0.14, 0.00, 0.00);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.10, bevelEnabled: true, bevelSegments: 2, bevelSize: 0.02, bevelThickness: 0.02, curveSegments: 24 });
+      geo.center();
+      const pos = geo.attributes.position;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        const span = (v.x + 0.65) / 1.30;
+        const t = THREE.MathUtils.clamp(span, 0, 1);
+        const taper = 1.0 - 0.58 * t;
+        const sweep = 0.18 * t * t;
+        const twist = 1.15 * t;
+        const camber = 0.06 * Math.sin(t * Math.PI);
+        const x = v.x * taper + sweep;
+        const y = v.y * (0.82 + 0.18 * (1.0 - t)) + camber;
+        const z = v.z + 0.03 * Math.sin(t * Math.PI);
+        const cos = Math.cos(twist);
+        const sin = Math.sin(twist);
+        const rx = x * cos - y * sin;
+        const ry = x * sin + y * cos;
+        pos.setXYZ(i, rx, ry, z);
+      }
+      geo.computeVertexNormals();
+      return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xcfd6df, metalness: 0.95, roughness: 0.18, side: THREE.DoubleSide }));
+    }
+
+    bladeAngles.forEach((angle) => {
+      const blade = createBlade();
+      blade.rotation.z = angle;
+      propellerSystem.add(blade);
+    });
+
+    const dragonNeck = new THREE.Group();
+    dragonNeck.position.set(0, 2, 9.2);
+    vesselGroup.add(dragonNeck);
+    addMesh(dragonNeck, new THREE.CylinderGeometry(0.45, 0.55, 1.0), materials.goldDark, [0, 0, 0]);
+    const dragon = new THREE.Group();
+    dragon.position.set(0, 1.3, 0);
+    dragonNeck.add(dragon);
+    addMesh(dragon, new THREE.IcosahedronGeometry(1.0, 0), materials.gold, [0, 0, 0]);
+    addMesh(dragon, new THREE.BoxGeometry(0.7, 0.35, 1.6), materials.goldDark, [0, 0.02, 1.0]);
+    addMesh(dragon, new THREE.BoxGeometry(0.22, 0.14, 0.18), materials.goldDark, [-0.28, 0.32, 0.75]);
+    addMesh(dragon, new THREE.BoxGeometry(0.22, 0.14, 0.18), materials.goldDark, [0.28, 0.32, 0.75]);
+    const dragonLight = new THREE.PointLight(0xffd700, 18, 10, 2);
+    dragonLight.position.set(0, 0.05, 1.0);
+    dragon.add(dragonLight);
+
+    addEdges(vesselGroup, 0xa8c8e6, 0.18);
+    vesselGroup.position.y = 0.05;
+
+    const waveBasePositions = waveGeometry.attributes.position.array.slice();
+    const wavePositions = waveGeometry.attributes.position;
+    const waveVertex = new THREE.Vector3();
+    const wingBaseRotL = wingPort.rotation.z;
+    const wingBaseRotR = wingStarboard.rotation.z;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = performance.now() * 0.001;
+      waveMaterial.uniforms.uTime.value = time;
+      wavePositions.needsUpdate = true;
+      wingPort.rotation.z = wingBaseRotL + Math.sin(time * 1.4) * 0.01;
+      wingStarboard.rotation.z = wingBaseRotR - Math.sin(time * 1.4) * 0.01;
+      propellerSystem.rotation.z += 0.45;
+      vesselGroup.position.y = -2.3 + Math.sin(time * 2.0) * 0.15;
+      vesselGroup.rotation.z = Math.sin(time * 1.8) * 0.03;
+      vesselGroup.rotation.x = Math.cos(time * 1.6) * 0.025;
+      controls.target.copy(deckCenter);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
